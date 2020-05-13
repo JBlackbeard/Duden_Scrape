@@ -1,12 +1,10 @@
-# import re
-# from time import sleep
-# import json
 import logging
 import re
-# import numpy as np
+import json
+from time import sleep
+import numpy as np
 from bs4 import BeautifulSoup
 import requests
-from time import sleep
 
 
 logger = logging.getLogger(__name__) # create a specific logger, so we don't use a root logger
@@ -36,8 +34,9 @@ Duden = {}
 class Word():
     """Class for a single word of the german dictionary DUDEN
     """
-    def __init__(self, soup):
+    def __init__(self, soup, url):
         self.soup = soup
+        self.url = url
 
     
     @property
@@ -45,13 +44,13 @@ class Word():
         """
         Word string (without article)
         """
-        return self.soup.find("span", class_="breadcrumb__crumb").text
+        return self.soup.find("span", class_="breadcrumb__crumb").text.strip()
 
     @property
     def full_word(self):
         """Get the full word (word plus article)
         """
-        return self.soup.find("h1", class_=re.compile(r"lemma__title")).text.replace("\xad", "")
+        return self.soup.find("h1", class_=re.compile(r"lemma__title")).text.replace("\xa0", " ").strip()
         
     def _get_tl_tuple(self, key, element=None):
         if not element:
@@ -75,8 +74,9 @@ class Word():
     def article(self):
         """Get article if the word is a noun
         """
-        if "Substantiv" in self.part_of_speech:
-            return self.soup.find("span", class_="lemma__determiner").text
+        if self.part_of_speech:
+            if "Substantiv" in self.part_of_speech:
+                return self.soup.find("span", class_="lemma__determiner").text
         return None
 
     @property
@@ -208,7 +208,7 @@ class Word():
             #examples = self._get_examples(element=meaning)
             #examples = self._get_note_list("Beispiel", meaning)
             if meaning.find("p"):
-                dic_el["Bedeutung"] = meaning.p.text.strip().replace("\n", "")
+                dic_el["Bedeutung"] = meaning.p.text.strip().replace("\xa0", " ")
             else: 
                 dic_el["Bedeutung"] = None
             dic_el["Beispiele"] = self._get_note_list("Beispiel", meaning)
@@ -231,7 +231,7 @@ class Word():
             elements = li.find_all("div", class_="enumeration__text")
             for element in elements:
                 dic = {}
-                meaning = element.text
+                meaning = element.text.replace("\xa0", " ")
                 dic["Bedeutung"] = meaning
 
                 par = element.parent
@@ -251,7 +251,7 @@ class Word():
         """
         synonyme = self.soup.find("div", id="synonyme")
         if synonyme:
-            synonyme = [synonym.text for synonym in synonyme.find_all("li")]
+            synonyme = [synonym.text.strip() for synonym in synonyme.find_all("li")]
         return synonyme
 
     def get_next_word(self):
@@ -260,6 +260,7 @@ class Word():
         if word_link:
             return word_link.get("href")
         return None
+
 
     def return_word_entry(self):
         dic_entry = {}
@@ -277,6 +278,7 @@ class Word():
         dic_entry["Kurzform"] = self.short_form
         dic_entry["Kurzform für"] = self.short_form_of
         dic_entry["Synonyme"] = self.synonyms
+        dic_entry["URL"] = self.url
 
         return dic_entry
             
@@ -303,15 +305,22 @@ def load_word(word_url):
     else:
         raise Exception(f"Unexpected response code: {source.status_code}")
 
-    return Word(soup)
+    return Word(soup, url)
     
 
 
 url = FIRST_WORD
 
-for i in range(5):
-    word = load_word(url)
-    Duden[word.name] = word.return_word_entry()
-    sleep(0.5)
+for i in range(1000):
+    try:
+        word = load_word(url)
+        Duden[word.name] = word.return_word_entry()
+        url = word.get_next_word()
+        sleep(abs(np.random.normal(20, 5)))
+    except:
+        logger.exception(exc_info=True)
 
 print(Duden)
+with open('duden_new.json', 'w', encoding="utf8") as fp:
+    json.dump(Duden, fp, ensure_ascii=False)
+
