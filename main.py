@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__) # create a specific logger, so we don't use
 logger.setLevel(logging.DEBUG)
 
 # create file handler which logs even debug messages
-fh = logging.FileHandler('duden.log')
+fh = logging.FileHandler('duden_main.log')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -74,9 +74,9 @@ class Word():
     def article(self):
         """Get article if the word is a noun
         """
-        if self.part_of_speech:
-            if "Substantiv" in self.part_of_speech:
-                return self.soup.find("span", class_="lemma__determiner").text
+        article = self.soup.find("span", class_="lemma__determiner")
+        if article:
+            return article.text
         return None
 
     @property
@@ -212,6 +212,8 @@ class Word():
             else: 
                 dic_el["Bedeutung"] = None
             dic_el["Beispiele"] = self._get_note_list("Beispiel", meaning)
+            dic_el["Gebrauch"] = self._get_tl_tuple("Gebrauch", meaning)
+            dic_el["Grammatik"] = self._get_tl_tuple("Grammatik", meaning)
             dic["Bedeutungen"].append(dic_el)
             return dic["Bedeutungen"]
 
@@ -222,6 +224,7 @@ class Word():
             dic["Bedeutungen"] = None
             dic["Beispiele"] = self._get_note_list("Beispiel", self.soup)
             dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", self.soup)
+            dic["Grammatik"] = self._get_tl_tuple("Grammatik", self.soup)
             return dic
 
         meaning_elements = meaning_elements.find("ol", recursive=False) or meaning_elements.find("ul", recursive=False)
@@ -237,6 +240,7 @@ class Word():
                 par = element.parent
                 dic["Beispiele"] = self._get_note_list("Beispiel", par)
                 dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", par)
+                dic["Grammatik"] = self._get_tl_tuple("Grammatik", par)
                 meanings.append(dic)
 
         return meanings
@@ -304,23 +308,35 @@ def load_word(word_url):
         soup = BeautifulSoup(source.text, 'lxml')
     else:
         raise Exception(f"Unexpected response code: {source.status_code}")
+        logger.exception(f"Unexpected response code for {url}: {source.status_code}")
 
     return Word(soup, url)
     
 
 
 url = FIRST_WORD
-
-for i in range(1000):
+url = "/rechtschreibung/Abbau"
+for i in range(2):
     try:
         word = load_word(url)
         Duden[word.name] = word.return_word_entry()
+        logger.info(f"{i}: {url}")
         url = word.get_next_word()
-        sleep(abs(np.random.normal(20, 5)))
+        sleep(abs(np.random.normal(0, 3)))
+    except KeyboardInterrupt:
+        logger.debug("KEYBOARD INTERRUPTION")
+        break
     except:
-        logger.exception(exc_info=True)
+        logger.debug(f"There was an error with {word.url}", exc_info=True)
+        url = word.get_next_word()
+        sleep(120)
+        pass
 
-print(Duden)
 with open('duden_new.json', 'w', encoding="utf8") as fp:
     json.dump(Duden, fp, ensure_ascii=False)
+
+#@TODO: grammar(): use Abbau as an example
+#@TODO: put failed words automatically in a list (their urls)
+#@TODO: split up the work in 26 parts and use proxies to scrape all of them
+#@TODO: save words on database
 
