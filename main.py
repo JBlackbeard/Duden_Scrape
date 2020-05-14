@@ -246,9 +246,6 @@ class Word():
         return meanings
 
 
-
-        # @TODO: Implementierung für Bedeutungen am "Haus" Beispiel
-
     @property
     def synonyms(self):
         """Get the synonyms of the word
@@ -335,8 +332,6 @@ for i in range(2):
 with open('duden_new.json', 'w', encoding="utf8") as fp:
     json.dump(Duden, fp, ensure_ascii=False)
 
-#@TODO: grammar(): use Abbau as an example
 #@TODO: put failed words automatically in a list (their urls)
 #@TODO: split up the work in 26 parts and use proxies to scrape all of them
 #@TODO: save words on database
-
