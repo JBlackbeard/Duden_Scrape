@@ -256,7 +256,7 @@ class Word():
         return synonyme
 
     @property
-    def typical_connenctions(self):
+    def typical_connections(self):
         """Get words that often appear together with this word
         """
         element = self.soup.find("figure", class_="tag-cluster__cluster")
@@ -292,6 +292,7 @@ class Word():
         dic_entry["Kurzform"] = self.short_form
         dic_entry["Kurzform für"] = self.short_form_of
         dic_entry["Synonyme"] = self.synonyms
+        dic_entry["Typische Verbindungen"] = self.typical_connections
         dic_entry["URL"] = self.url
 
         return dic_entry
@@ -325,8 +326,7 @@ def load_word(word_url):
 
 
 url = FIRST_WORD
-
-for i in range(2):
+for i in range(25):
     try:
         word = load_word(url)
         Duden[word.name] = word.return_word_entry()
