@@ -255,6 +255,19 @@ class Word():
             synonyme = [synonym.text.strip() for synonym in synonyme.find_all("li")]
         return synonyme
 
+    @property
+    def typical_connenctions(self):
+        """Get words that often appear together with this word
+        """
+        element = self.soup.find("figure", class_="tag-cluster__cluster")
+        if element:
+            link_elements = element.find_all("a")
+            if link_elements:
+                related_words = [rel_word.text for rel_word in link_elements]
+            return related_words
+        return None
+        
+
     def get_next_word(self):
         next_words = self.soup.find("h3", class_="hookup__title", string = "Im Alphabet danach").next_sibling
         word_link = next_words.find("a")
@@ -312,7 +325,7 @@ def load_word(word_url):
 
 
 url = FIRST_WORD
-url = "/rechtschreibung/Abbau"
+
 for i in range(2):
     try:
         word = load_word(url)
@@ -332,6 +345,5 @@ for i in range(2):
 with open('duden_new.json', 'w', encoding="utf8") as fp:
     json.dump(Duden, fp, ensure_ascii=False)
 
-#@TODO: put failed words automatically in a list (their urls)
 #@TODO: split up the work in 26 parts and use proxies to scrape all of them
 #@TODO: save words on database
