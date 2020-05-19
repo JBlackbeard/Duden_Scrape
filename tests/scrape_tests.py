@@ -27,7 +27,10 @@ def test_origin():
     assert word_haus.origin.replace("\xa0", " ") == "mittelhochdeutsch, althochdeutsch hūs, eigentlich = das Bedeckende, Umhüllende"
 
 def test_meaning_haus():
-    assert word_haus.meaning != []
+    assert len(word_haus.meaning) == 11
+
+def test_meaning_haus2():
+    assert word_haus.meaning[5]["Bedeutung"] == "Familie"
 
 url = "/rechtschreibung/Heber"
 word_heber = load_word(url)
@@ -98,3 +101,11 @@ word_abbau = load_word(url)
 
 def test_typical_connections():
     assert word_abbau.typical_connections is not None
+
+
+url = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
+sleep(1)
+word_korrekturzeichen = load_word(url)
+
+def test_meaning_empty():
+    assert word_korrekturzeichen.meaning[0]["Bedeutung"] == None
