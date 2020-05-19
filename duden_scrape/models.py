@@ -178,7 +178,7 @@ class Word():
                 dic_el["Bedeutung"] = meaning.p.text.strip().replace("\xa0", " ")
             else: 
                 dic_el["Bedeutung"] = None
-            dic_el = self._get_meaning_additions(dic, meaning)
+            dic_el = self._get_meaning_additions(dic_el, meaning)
             dic["Bedeutungen"].append(dic_el)
             return dic["Bedeutungen"]
 
