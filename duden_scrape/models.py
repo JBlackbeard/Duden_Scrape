@@ -174,27 +174,23 @@ class Word():
         dic_el = {}
         meaning = self.soup.find("div", id="bedeutung")
         if meaning:
-            #examples = self._get_examples(element=meaning)
-            #examples = self._get_note_list("Beispiel", meaning)
             if meaning.find("p"):
                 dic_el["Bedeutung"] = meaning.p.text.strip().replace("\xa0", " ")
             else: 
                 dic_el["Bedeutung"] = None
-            dic_el["Beispiele"] = self._get_note_list("Beispiel", meaning)
-            dic_el["Gebrauch"] = self._get_tl_tuple("Gebrauch", meaning)
-            dic_el["Grammatik"] = self._get_tl_tuple("Grammatik", meaning)
+            dic_el = self._get_meaning_additions(dic, meaning)
             dic["Bedeutungen"].append(dic_el)
             return dic["Bedeutungen"]
 
         meaning_elements = self.soup.find("div", id="bedeutungen")
 
         if not meaning_elements:
-            dic = {}
-            dic["Bedeutungen"] = None
-            dic["Beispiele"] = self._get_note_list("Beispiel", self.soup)
-            dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", self.soup)
-            dic["Grammatik"] = self._get_tl_tuple("Grammatik", self.soup)
-            return dic
+            #dic = {}
+            #dic["Bedeutungen"] = []
+            dic_el["Bedeutung"] = None
+            dic_el = self._get_meaning_additions(dic_el, self.soup)
+            dic["Bedeutungen"].append(dic_el)
+            return dic["Bedeutungen"]
 
         meaning_elements = meaning_elements.find("ol", recursive=False) or meaning_elements.find("ul", recursive=False)
 
@@ -207,9 +203,7 @@ class Word():
                 dic["Bedeutung"] = meaning
 
                 par = element.parent
-                dic["Beispiele"] = self._get_note_list("Beispiel", par)
-                dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", par)
-                dic["Grammatik"] = self._get_tl_tuple("Grammatik", par)
+                dic = self._get_meaning_additions(dic, par)
                 meanings.append(dic)
 
         return meanings
@@ -235,6 +229,17 @@ class Word():
                 related_words = [rel_word.text for rel_word in link_elements]
             return related_words
         return None
+
+
+    def _get_meaning_additions(self, dic, soup):
+        """Add additional informations to the meaning
+        """
+        dic["Beispiele"] = self._get_note_list("Beispiel", soup)
+        dic["Wendungen_Redensarten_Sprichwoerter"] = self._get_note_list("Wendungen", soup)
+        dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", soup)
+        dic["Grammatik"] = self._get_tl_tuple("Grammatik", soup)
+
+        return dic
         
 
     def get_next_word(self):
