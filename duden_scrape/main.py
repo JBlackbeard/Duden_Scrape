@@ -24,17 +24,17 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 
-BASE_URL = "https://www.duden.de"
-FIRST_WORD = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
-HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4), "\
-            + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Chrome/71.0.3578.98"}
+#BASE_URL = "https://www.duden.de"
+FIRST_WORD = "/rechtschreibung/Haus"
+#HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4), "\
+#            + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Chrome/71.0.3578.98"}
 Duden = {}
 url = FIRST_WORD
 
 if __name__ == "__main__":
     for i in range(3):
         try:
-            word = load_word(url, base_url=BASE_URL, headers=HEADERS)
+            word = load_word(url)
             Duden[word.name] = word.return_word_entry()
             logger.info(f"{i}: {url}")
             url = word.get_next_word()

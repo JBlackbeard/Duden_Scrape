@@ -1,5 +1,5 @@
 from time import sleep
-from .main import load_word
+from duden_scrape.utils import load_word
 
 
 def test_load_word():

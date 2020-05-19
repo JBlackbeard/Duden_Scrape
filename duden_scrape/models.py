@@ -1,5 +1,3 @@
-
-
 import re
 
 class Word():
