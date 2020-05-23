@@ -112,7 +112,7 @@ class Word():
             dic = {}
             dic["Von Duden empfohlene Schreibung"] = rec_spelling.strip()
             dic["Alternative Schreibung"] = alt_spelling.strip()
-            return dic
+            return dic["Von Duden empfohlene Schreibung"] # just return one value
         return None
 
     @property
