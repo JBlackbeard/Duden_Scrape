@@ -75,7 +75,7 @@ class Word():
                 dic = {}
                 dic["Von Duden empfohlene Trennung"] = self._get_tl_tuple(key="Von Duden empfohlene Trennung")
                 dic["Alle Trennmöglichkeiten"] = self._get_tl_tuple(key="Alle Trennmöglichkeiten")
-                return dic
+                return dic["Von Duden empfohlene Trennung"] # just keep this one
             return hyphenation
         except AttributeError:
             return None
@@ -164,7 +164,7 @@ class Word():
             
             for li in note_list:
                 res_list.append(li.text.strip())
-        return res_list or None
+        return ", ".join(res for res in res_list) or None
 
     @property
     def meaning(self):
@@ -216,6 +216,7 @@ class Word():
         synonyme = self.soup.find("div", id="synonyme")
         if synonyme:
             synonyme = [synonym.text.strip() for synonym in synonyme.find_all("li")]
+            synonyme = ", ".join(synonym for synonym in synonyme)
         return synonyme
 
     @property
@@ -227,6 +228,7 @@ class Word():
             link_elements = element.find_all("a")
             if link_elements:
                 related_words = [rel_word.text for rel_word in link_elements]
+                related_words = ", ".join(rel_word for rel_word in related_words)
             return related_words
         return None
 
@@ -234,10 +236,10 @@ class Word():
     def _get_meaning_additions(self, dic, soup):
         """Add additional informations to the meaning
         """
-        dic["Beispiele"] = self._get_note_list("Beispiel", soup)
-        dic["Wendungen_Redensarten_Sprichwoerter"] = self._get_note_list("Wendungen", soup)
-        dic["Gebrauch"] = self._get_tl_tuple("Gebrauch", soup)
-        dic["Grammatik"] = self._get_tl_tuple("Grammatik", soup)
+        dic["beispiele"] = self._get_note_list("Beispiel", soup)
+        dic["wendungen_redensarten_sprichwoerter"] = self._get_note_list("Wendungen", soup)
+        dic["gebrauch"] = self._get_tl_tuple("Gebrauch", soup)
+        dic["grammatik"] = self._get_tl_tuple("Grammatik", soup)
 
         return dic
         
@@ -253,20 +255,30 @@ class Word():
     def return_word_entry(self):
         dic_entry = {}
         #dic_entry["Wort"] = self.word
-        dic_entry["Ganzes Wort"] = self.full_word
-        dic_entry["Artikel"] = self.article
-        dic_entry["Wortart"] = self.part_of_speech
-        dic_entry["Bedeutungen"] = self.meaning
-        dic_entry["Häufigkeit"] = self.frequency
-        dic_entry["Worttrennung"] = self.hyphenation
-        dic_entry["Herkunft"] = self.origin
-        dic_entry["Verwandte Form"] = self.related_form
-        dic_entry["Alternative Schreibweise"] = self.alternative_spelling
-        dic_entry["Zeichen"] = self.sign
-        dic_entry["Kurzform"] = self.short_form
-        dic_entry["Kurzform für"] = self.short_form_of
-        dic_entry["Synonyme"] = self.synonyms
-        dic_entry["Typische Verbindungen"] = self.typical_connections
-        dic_entry["URL"] = self.url
+        dic_entry["name"] = self.name
+        dic_entry["ganzes_wort"] = self.full_word
+        dic_entry["artikel"] = self.article
+        dic_entry["wortart"] = self.part_of_speech
+        #dic_entry["Bedeutungen"] = self.meaning
+        dic_entry["haeufigkeit"] = self.frequency
+        dic_entry["worttrennung"] = self.hyphenation
+        dic_entry["herkunft"] = self.origin
+        dic_entry["verwandte_form"] = self.related_form
+        dic_entry["alternative_schreibweise"] = self.alternative_spelling
+        dic_entry["zeichen"] = self.sign
+        dic_entry["kurzform"] = self.short_form
+        dic_entry["kurzform_fuer"] = self.short_form_of
+        dic_entry["synonyme"] = self.synonyms
+        dic_entry["typische_verbindungen"] = self.typical_connections
+        dic_entry["url"] = self.url
 
         return dic_entry
+
+    def return_meaning(self):
+        dic_entry = {}
+        dic_entry["bedeutungen"] = self.meaning
+
+        return dic_entry
+
+
+
