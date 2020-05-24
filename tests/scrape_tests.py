@@ -109,3 +109,9 @@ word_korrekturzeichen = load_word(url)
 
 def test_meaning_empty():
     assert word_korrekturzeichen.meaning[0]["Bedeutung"] == None
+
+url = "/rechtschreibung/Hebewerk"
+word_hebewerk = load_word(url)
+
+def test_short_form_vs_short_form_of():
+    assert word_hebewerk.short_form == None and word_hebewerk.short_form_of == "Schiffshebewerk"
