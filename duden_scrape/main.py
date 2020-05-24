@@ -25,31 +25,51 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 
-#BASE_URL = "https://www.duden.de"
 FIRST_WORD = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
-FIRST_WORD = "/rechtschreibung/Hausbewohnerin"
-#HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4), "\
-#            + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Chrome/71.0.3578.98"}
+#FIRST_WORD = "/rechtschreibung/Haus"
+
 Duden = {}
 url = FIRST_WORD
 
 db = DatabaseManager("Duden")
 db.drop_table("wort")
 db.drop_table("bedeutungen")
+db.drop_table("synonyme")
+db.drop_table("bedeutungen")
+db.drop_table("gebrauch")
+db.drop_table("beispiele")
+db.drop_table("wendungen_redensarten_sprichwoerter")
+
 word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
                 "wortart": "TEXT", "haeufigkeit": "INTEGER",
                 "worttrennung": "TEXT", "herkunft": "TEXT", "verwandte_form": "TEXT", 
                 "alternative_schreibweise": "TEXT", "zeichen": "TEXT", "kurzform": "TEXT",
-                "kurzform_fuer": "TEXT", "synonyme": "TEXT", "typische_verbindungen": "TEXT",
+                "kurzform_fuer": "TEXT", "typische_verbindungen": "TEXT",
                 "url": "TEXT"}
-meaning_dict = {"id": "INTEGER PRIMARY KEY", "bedeutung": "TEXT", "beispiele": "TEXT", 
-                "wendungen_redensarten_sprichwoerter": "TEXT", 
-                 "gebrauch": "TEXT", "grammatik": "TEXT", "wort_id": "INTEGER"}
+
+synonyme_dict = {"id": "INTEGER PRIMARY KEY", "synonyme": "TEXT", "wort_id": "INTEGER"}
+synonyme_references = {"wort_id": "wort(id)"}
+
+meaning_dict = {"id": "INTEGER PRIMARY KEY", "bedeutung": "TEXT",
+                "grammatik": "TEXT", "wort_id": "INTEGER"}
 meaning_references = {"wort_id": "wort(id)"}
+
+examples_dict = {"id": "INTEGER PRIMARY KEY", "beispiel": "TEXT", "bedeutungen_id": "INTEGER"}
+examples_references = {"bedeutungen_id": "bedeutungen(id)"}
+
+sayings_dict = {"id": "INTEGER PRIMARY KEY", "wendung_redensart_sprichwort": "TEXT", "bedeutungen_id": "INTEGER"}
+sayings_references = {"bedeutungen_id": "bedeutungen(id)"}
+
+usage_dict = {"id": "INTEGER PRIMARY KEY", "gebrauch": "TEXT", "bedeutungen_id": "INTEGER"}
+usage_references = {"bedeutungen_id": "bedeutungen(id)"}
 
 
 db.create_table(table_name="wort", columns=word_dict)
+db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references)
 db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references)
+db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references)
+db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references)
+db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references)
 
 if __name__ == "__main__":
 
@@ -57,12 +77,35 @@ if __name__ == "__main__":
         try:
             word = load_word(url)
             word_entry = word.return_word_entry()
+            synonyme = word_entry.pop("synonyme") or None
             db.add("wort", word_entry)
             wort_id = db.select("id", "wort", {"url": "https://www.duden.de" + url}).fetchone()[0]
+            
+            if synonyme:
+                for synonym in synonyme.split(";"):
+                    db.add("synonyme", {"synonyme": synonym, "wort_id": wort_id})
+
             meanings = word.return_meaning()
             for bedeutung in meanings["bedeutungen"]:
                 bedeutung.update({"wort_id": wort_id})
+                beispiele = bedeutung.pop("beispiele") or []
+                wendungen = bedeutung.pop("wendungen_redensarten_sprichwoerter") or []
+                gebrauch = bedeutung.pop("gebrauch") or None
                 db.add("bedeutungen", bedeutung)
+                
+                bedeutung_id = db.select("max(id)", "bedeutungen").fetchone()[0]
+
+                for beispiel in beispiele:
+                    db.add("beispiele", {"beispiel": beispiel, "bedeutungen_id": bedeutung_id})
+
+                for wendung in wendungen:
+                    db.add("wendungen_redensarten_sprichwoerter", {"wendung_redensart_sprichwort": wendung, 
+                    "bedeutungen_id": bedeutung_id})
+                
+                if gebrauch:
+                    for geb in gebrauch.split(";"):
+                        db.add("gebrauch", {"gebrauch": geb, "bedeutungen_id": bedeutung_id})
+
 
             logger.info(f"{i}: {url}, wort_id: {wort_id}")
             url = word.get_next_word()
@@ -76,9 +119,7 @@ if __name__ == "__main__":
             sleep(120)
             pass
 
-    if Duden==1:
-        with open('duden.json', 'w', encoding="utf8") as fp:
-            json.dump(Duden, fp, ensure_ascii=False)
+
 
 
 
