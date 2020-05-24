@@ -26,7 +26,7 @@ class Word():
             element = self.soup
         tuples = element.find_all("dl", class_="tuple")
         for tup in tuples:
-            if key in tup.text:
+            if re.search(key, tup.text):
                 return tup.find("dd", class_="tuple__val").text.strip()
         return None
 
@@ -129,7 +129,7 @@ class Word():
     def short_form(self):
         """Get the short version of a word if it exists.
         """
-        short = self._get_tl_tuple(key="Kurzform")
+        short = self._get_tl_tuple(key="Kurzform(?!\s+für)") # don't match "Kurzform für"
         if short:
             return short.strip()
         return None
@@ -245,7 +245,7 @@ class Word():
         
 
     def get_next_word(self):
-        next_words = self.soup.find("h3", class_="hookup__title", string = "Im Alphabet danach").next_sibling
+        next_words = self.soup.find("h3", class_="hookup__title", string="Im Alphabet danach").next_sibling
         word_link = next_words.find("a")
         if word_link:
             return word_link.get("href")
