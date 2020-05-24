@@ -164,7 +164,8 @@ class Word():
             
             for li in note_list:
                 res_list.append(li.text.strip())
-        return ", ".join(res for res in res_list) or None
+        return res_list or None
+        #return "; ".join(res for res in res_list) or None
 
     @property
     def meaning(self):
@@ -216,7 +217,7 @@ class Word():
         synonyme = self.soup.find("div", id="synonyme")
         if synonyme:
             synonyme = [synonym.text.strip() for synonym in synonyme.find_all("li")]
-            synonyme = ", ".join(synonym for synonym in synonyme)
+            synonyme = "; ".join(synonym for synonym in synonyme)
         return synonyme
 
     @property
@@ -228,7 +229,7 @@ class Word():
             link_elements = element.find_all("a")
             if link_elements:
                 related_words = [rel_word.text for rel_word in link_elements]
-                related_words = ", ".join(rel_word for rel_word in related_words)
+                related_words = "; ".join(rel_word for rel_word in related_words)
             return related_words
         return None
 
