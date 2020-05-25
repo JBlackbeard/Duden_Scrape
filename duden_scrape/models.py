@@ -139,6 +139,8 @@ class Word():
         """Get the long version of the word
         """
         short = self._get_tl_tuple(key="Kurzform für")
+        if not short:
+            short = self._get_tl_tuple(key="Kurz für")
         if short:
             return short.strip()
         return None
