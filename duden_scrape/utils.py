@@ -1,9 +1,39 @@
 import logging
 import requests
+from requests.adapters import HTTPAdapter
 from bs4 import BeautifulSoup
+from requests.packages.urllib3.util.retry import Retry
 from .models import Word
 
 logger = logging.getLogger(__name__)
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = DEFAULT_TIMEOUT
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+            del kwargs["timeout"]
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        timeout = kwargs.get("timeout")
+        if timeout is None:
+            kwargs["timeout"] = self.timeout
+        return super().send(request, **kwargs)
+
+DEFAULT_TIMEOUT = 5
+adapter = TimeoutHTTPAdapter(timeout=2.5)
+
+
+retries = Retry(
+    total=2,
+    status_forcelist=[429, 500, 502, 503, 504],
+    backoff_factor = 1
+)
+
+http = requests.Session()
+http.mount("https://", TimeoutHTTPAdapter(max_retries=retries))
+http.mount("http://", TimeoutHTTPAdapter(max_retries=retries))
 
 def load_word(word_url, base_url="https://www.duden.de",
               headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4), "\
@@ -19,7 +49,7 @@ def load_word(word_url, base_url="https://www.duden.de",
     url = base_url + word_url
 
     # try:
-    source = requests.get(url, headers=headers)
+    source = http.get(url, headers=headers)
     # except Exception as errc:
     #         print("There seems to be no internet connection right now. Try again later!", errc)
                         
