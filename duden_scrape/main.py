@@ -35,7 +35,6 @@ db = DatabaseManager("Duden")
 # db.drop_table("wort")
 # db.drop_table("bedeutungen")
 # db.drop_table("synonyme")
-# db.drop_table("bedeutungen")
 # db.drop_table("gebrauch")
 # db.drop_table("beispiele")
 # db.drop_table("wendungen_redensarten_sprichwoerter")
@@ -80,7 +79,7 @@ if not db.is_empty("wort"):
 
 url = first_word
 recover = False
-wait_variance = 10
+wait_variance = 5
 
 if __name__ == "__main__":
 
@@ -123,6 +122,5 @@ if __name__ == "__main__":
 
 
 
-#@TODO: stop when finished scraping all words
 #@TODO: clean up __main__
 #@TODO: create table for typische_verbindungen after scraping all data
