@@ -65,7 +65,7 @@ class DatabaseManager():
             column_values
         )
 
-    def select(self, column_name, table_name, criteria=None, order_by=None):
+    def select(self, column_name, table_name, criteria=None, order_by=None, limit=None):
             criteria = criteria or {}
 
             query = f'SELECT {column_name} FROM {table_name}'
@@ -78,7 +78,28 @@ class DatabaseManager():
             if order_by:
                 query += f' ORDER BY {order_by}'
 
+            if limit:
+                query += f" LIMIT {limit}"
+
             return self._execute(
                 query,
                 tuple(criteria.values()),
             )
+
+    def delete(self, table_name, criteria):
+        placeholders = [f'{column} = ?' for column in criteria.keys()]
+        delete_criteria = ' AND '.join(placeholders)
+        self._execute(
+            f'''
+            DELETE FROM {table_name}
+            WHERE {delete_criteria};
+            ''',
+            tuple(criteria.values()),
+        )
+
+    def is_empty(self, table_name):
+        return self.select("*", table_name, limit="1").fetchone() == None
+        
+    
+    def get_max_id(self, table_name):
+        return self.select("id", table_name, criteria={"id": self.select("id", table_name, order_by="id desc", limit="1").fetchone()[0]}).fetchone()[0]
