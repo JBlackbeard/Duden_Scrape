@@ -129,13 +129,11 @@ if __name__ == "__main__":
             logger.error(f"The request for {url} timed out with wait_variance {round(wait_variance,3)}", exc_info=True)
             wait_variance += 5
             sleep(300)
-            pass
         except:
             logger.error(f"There was an error with {url} \n and word_entry {word_entry} \n with wait_variance {round(wait_variance,3)} ", exc_info=True)
             recover = True
             wait_variance += 5
             sleep(300)
-            pass
 
 
 
