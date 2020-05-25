@@ -6,6 +6,9 @@ import numpy as np
 from .utils import load_word
 from duden_scrape.database import DatabaseManager
 from duden_scrape.utils import add_meanings_db, add_word_db
+import requests
+import OpenSSL
+from urllib3.exceptions import ReadTimeoutError
 
 
 logger = logging.getLogger(__name__) # create a specific logger, so we don't use a root logger
@@ -99,21 +102,38 @@ if __name__ == "__main__":
             add_meanings_db(meanings, db, wort_id)
 
 
-            logger.info(f"{url}, wort_id: {wort_id}")
+            logger.info(f"{url}, wait_variance: {round(wait_variance,3)}, wort_id: {wort_id}")
 
             if url == LAST_WORD:
                 break
             url = word.get_next_word()
-            sleep(abs(np.random.normal(0, max(1, wait_variance))))
-            wait_variance -= 0.01
+            sleep(abs(np.random.normal(0, wait_variance)))
+            wait_variance = max(wait_variance-0.005, 2)
         except KeyboardInterrupt:
             logger.debug("KEYBOARD INTERRUPTION")
             db.delete("wort", {"id":db.get_max_id("wort")})
             break
+        except requests.exceptions.Timeout:
+            logger.error(f"The requests for {url} timed out with wait_variance {round(wait_variance,3)} ", exc_info=True)
+            wait_variance += 5
+            sleep(300)
+        except OSError:
+            logger.error(f"The request for {url} with {round(wait_variance,3)} failed", exc_info=True)
+            wait_variance += 5
+            sleep(300)
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"The request for {url} timed out with wait_variance {round(wait_variance,3)}", exc_info=True)
+            wait_variance += 5
+            sleep(300)
+        except ReadTimeoutError:
+            logger.error(f"The request for {url} timed out with wait_variance {round(wait_variance,3)}", exc_info=True)
+            wait_variance += 5
+            sleep(300)
+            pass
         except:
-            logger.error(f"There was an error with {word.url} \n and word_entry {word_entry} with wait_variance {wait_variance} ", exc_info=True)
+            logger.error(f"There was an error with {url} \n and word_entry {word_entry} \n with wait_variance {round(wait_variance,3)} ", exc_info=True)
             recover = True
-            wait_variance+=10
+            wait_variance += 5
             sleep(300)
             pass
 
