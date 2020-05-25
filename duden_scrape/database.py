@@ -18,7 +18,7 @@ class DatabaseManager():
             cursor.execute(statement, values or [])
             return cursor
 
-    def create_table(self, table_name, columns, references={}):
+    def create_table(self, table_name, columns, references={}, cascade_delete=False):
         """
         columns: dict with {column_name: data_type}
         references: dict with {foreign_key: TABLE_NAME(reference)}
@@ -31,12 +31,16 @@ class DatabaseManager():
             f",FOREIGN KEY ({foreign_key}) REFERENCES {reference}"
             for foreign_key, reference in references.items()
         ]
-
+        if cascade_delete:
+            cascade_delete = "ON DELETE CASCADE"
+        else:
+            cascade_delete = ""
         self._execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_name}
             ({", ".join(columns_with_types)}
-            {" ".join(foreign_keys)});
+            {" ".join(foreign_keys)}
+            {cascade_delete} );
             """
         )
     
