@@ -5,6 +5,7 @@ import numpy as np
 
 from .utils import load_word
 from duden_scrape.database import DatabaseManager
+from duden_scrape.utils import add_meanings_db, add_word_db
 
 
 logger = logging.getLogger(__name__) # create a specific logger, so we don't use a root logger
@@ -25,20 +26,19 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 
-FIRST_WORD = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
-#FIRST_WORD = "/rechtschreibung/Haus"
+
+LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 
 Duden = {}
-url = FIRST_WORD
 
 db = DatabaseManager("Duden")
-db.drop_table("wort")
-db.drop_table("bedeutungen")
-db.drop_table("synonyme")
-db.drop_table("bedeutungen")
-db.drop_table("gebrauch")
-db.drop_table("beispiele")
-db.drop_table("wendungen_redensarten_sprichwoerter")
+# db.drop_table("wort")
+# db.drop_table("bedeutungen")
+# db.drop_table("synonyme")
+# db.drop_table("bedeutungen")
+# db.drop_table("gebrauch")
+# db.drop_table("beispiele")
+# db.drop_table("wendungen_redensarten_sprichwoerter")
 
 word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
                 "wortart": "TEXT", "haeufigkeit": "INTEGER",
@@ -65,58 +65,57 @@ usage_references = {"bedeutungen_id": "bedeutungen(id)"}
 
 
 db.create_table(table_name="wort", columns=word_dict)
-db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references)
-db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references)
-db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references)
-db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references)
-db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references)
+db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references, cascade_delete=True)
+db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references, cascade_delete=True)
+db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references, cascade_delete=True)
+db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references, cascade_delete=True)
+db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references, cascade_delete=True)
+
+first_word = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
+
+if not db.is_empty("wort"):
+    url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
+    word = load_word(url)
+    first_word = word.get_next_word()
+
+url = first_word
+recover = False
+wait_variance = 10
 
 if __name__ == "__main__":
 
-    for i in range(500):
+    while True:
         try:
+            if recover and not db.is_empty("wort"):
+                db.delete("wort", {"id":db.get_max_id("wort")})
+                max_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
+                word = load_word(max_url)
+                url = word.get_next_word()
+                recover = False
             word = load_word(url)
             word_entry = word.return_word_entry()
-            synonyme = word_entry.pop("synonyme") or None
-            db.add("wort", word_entry)
-            wort_id = db.select("id", "wort", {"url": "https://www.duden.de" + url}).fetchone()[0]
-            
-            if synonyme:
-                for synonym in synonyme.split(";"):
-                    db.add("synonyme", {"synonyme": synonym, "wort_id": wort_id})
+            wort_id = add_word_db(word_entry, db, url)
 
             meanings = word.return_meaning()
-            for bedeutung in meanings["bedeutungen"]:
-                bedeutung.update({"wort_id": wort_id})
-                beispiele = bedeutung.pop("beispiele") or []
-                wendungen = bedeutung.pop("wendungen_redensarten_sprichwoerter") or []
-                gebrauch = bedeutung.pop("gebrauch") or None
-                db.add("bedeutungen", bedeutung)
-                
-                bedeutung_id = db.select("max(id)", "bedeutungen").fetchone()[0]
-
-                for beispiel in beispiele:
-                    db.add("beispiele", {"beispiel": beispiel, "bedeutungen_id": bedeutung_id})
-
-                for wendung in wendungen:
-                    db.add("wendungen_redensarten_sprichwoerter", {"wendung_redensart_sprichwort": wendung, 
-                    "bedeutungen_id": bedeutung_id})
-                
-                if gebrauch:
-                    for geb in gebrauch.split(";"):
-                        db.add("gebrauch", {"gebrauch": geb, "bedeutungen_id": bedeutung_id})
+            add_meanings_db(meanings, db, wort_id)
 
 
-            logger.info(f"{i}: {url}, wort_id: {wort_id}")
+            logger.info(f"{url}, wort_id: {wort_id}")
+
+            if url == LAST_WORD:
+                break
             url = word.get_next_word()
-            sleep(abs(np.random.normal(0, 5)))
+            sleep(abs(np.random.normal(0, max(1, wait_variance))))
+            wait_variance -= 0.01
         except KeyboardInterrupt:
             logger.debug("KEYBOARD INTERRUPTION")
+            db.delete("wort", {"id":db.get_max_id("wort")})
             break
         except:
-            logger.error(f"There was an error with {word.url} \n and word_entry {word_entry} ", exc_info=True)
-            url = word.get_next_word()
-            sleep(120)
+            logger.error(f"There was an error with {word.url} \n and word_entry {word_entry} with wait_variance {wait_variance} ", exc_info=True)
+            recover = True
+            wait_variance+=10
+            sleep(300)
             pass
 
 
@@ -124,6 +123,6 @@ if __name__ == "__main__":
 
 
 
-#@TODO: split up the work in 26 parts and use proxies to scrape all of them
-#@TODO: save words on database
-#@TODO: add to database after scraping each word 
+#@TODO: stop when finished scraping all words
+#@TODO: clean up __main__
+#@TODO: create table for typische_verbindungen after scraping all data
