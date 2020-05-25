@@ -7,12 +7,15 @@ logger = logging.getLogger(__name__)
 class DatabaseManager():
     def __init__(self, database_filename):
         self.connection = sqlite3.connect(database_filename)
+        
+
 
     def __del__(self):
         self.connection.close()
 
     def _execute(self, statement, values=None):
         with self.connection:
+            self.connection.execute("PRAGMA foreign_keys = ON")
             cursor = self.connection.cursor()
             logger.debug(f"data: {statement}", exc_info=True)
             cursor.execute(statement, values or [])
