@@ -37,7 +37,7 @@ class TimeoutHTTPAdapter(HTTPAdapter):
             kwargs["timeout"] = self.timeout
         return super().send(request, **kwargs)
 
-DEFAULT_TIMEOUT = 5
+DEFAULT_TIMEOUT = 10
 adapter = TimeoutHTTPAdapter(timeout=2.5)
 
 
@@ -114,21 +114,11 @@ def add_meanings_db(meanings, db, wort_id):
             for geb in gebrauch.split(";"):
                 db.add("gebrauch", {"gebrauch": geb, "bedeutungen_id": bedeutung_id})
 
-def add_link_entries_db(link_entries, db, wort_id):
-    synonyme_links = link_entries.pop("synonyme_links")
-    if synonyme_links:
-        for link in synonyme_links:
-            db.add("synonyme_links", {"synonym_url": "https://www.duden.de" + link, "wort_id": wort_id})
-
-    antonyme_links = link_entries.pop("antonyme_links")
-    if antonyme_links:
-        for link in antonyme_links:
-            db.add("antonyme_links", {"antonym_url": "https://www.duden.de" + link, "wort_id": wort_id})
-
-    typical_connections_links = link_entries.pop("typische_verbindungen_links")
-    if typical_connections_links:
-        for link in typical_connections_links:
-            db.add("typische_verbindungen_links", {"typische_verbindung_url": "https://www.duden.de" + link, "wort_id": wort_id})
+def add_link_entries_db(link_entries, db, wort_id, table_name, column_link_name):
+    if link_entries:
+        for link in link_entries:
+            if link:
+                db.add(table_name, {column_link_name: "https://www.duden.de" + link, "wort_id": wort_id})
 
 def create_tables(db):
     word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
