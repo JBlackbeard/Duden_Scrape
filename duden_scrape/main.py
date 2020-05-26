@@ -2,10 +2,10 @@ import logging
 import json
 from time import sleep
 import numpy as np
-
+from datetime import datetime
 from .utils import load_word
 from duden_scrape.database import DatabaseManager
-from duden_scrape.utils import add_meanings_db, add_word_db
+from duden_scrape.utils import RangeDict, add_meanings_db, add_word_db, create_tables
 import requests
 import OpenSSL
 from urllib3.exceptions import ReadTimeoutError
@@ -31,9 +31,6 @@ logger.addHandler(ch)
 
 
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
-
-Duden = {}
-
 db = DatabaseManager("Duden")
 # db.drop_table("wort")
 # db.drop_table("bedeutungen")
@@ -41,50 +38,19 @@ db = DatabaseManager("Duden")
 # db.drop_table("gebrauch")
 # db.drop_table("beispiele")
 # db.drop_table("wendungen_redensarten_sprichwoerter")
-
-word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
-                "wortart": "TEXT", "haeufigkeit": "INTEGER",
-                "worttrennung": "TEXT", "herkunft": "TEXT", "verwandte_form": "TEXT", 
-                "alternative_schreibweise": "TEXT", "zeichen": "TEXT", "kurzform": "TEXT",
-                "kurzform_fuer": "TEXT", "typische_verbindungen": "TEXT",
-                "url": "TEXT"}
-
-synonyme_dict = {"id": "INTEGER PRIMARY KEY", "synonyme": "TEXT", "wort_id": "INTEGER"}
-synonyme_references = {"wort_id": "wort(id)"}
-
-meaning_dict = {"id": "INTEGER PRIMARY KEY", "bedeutung": "TEXT",
-                "grammatik": "TEXT", "wort_id": "INTEGER"}
-meaning_references = {"wort_id": "wort(id)"}
-
-examples_dict = {"id": "INTEGER PRIMARY KEY", "beispiel": "TEXT", "bedeutungen_id": "INTEGER"}
-examples_references = {"bedeutungen_id": "bedeutungen(id)"}
-
-sayings_dict = {"id": "INTEGER PRIMARY KEY", "wendung_redensart_sprichwort": "TEXT", "bedeutungen_id": "INTEGER"}
-sayings_references = {"bedeutungen_id": "bedeutungen(id)"}
-
-usage_dict = {"id": "INTEGER PRIMARY KEY", "gebrauch": "TEXT", "bedeutungen_id": "INTEGER"}
-usage_references = {"bedeutungen_id": "bedeutungen(id)"}
-
-
-db.create_table(table_name="wort", columns=word_dict)
-db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references, cascade_delete=True)
-db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references, cascade_delete=True)
-db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references, cascade_delete=True)
-db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references, cascade_delete=True)
-db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references, cascade_delete=True)
-
+create_tables(db)
 first_word = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
-
-if not db.is_empty("wort"):
-    url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
-    word = load_word(url)
-    first_word = word.get_next_word()
-
 url = first_word
 recover = False
 wait_variance = 5
 
+max_wait_variance_by_hour = RangeDict({range(0, 9): 1.5, range(9, 21): 3.5, range(21, 24): 2.5})
+
 if __name__ == "__main__":
+    if not db.is_empty("wort"):
+        url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
+        word = load_word(url)
+        first_word = word.get_next_word()
 
     while True:
         try:
@@ -108,7 +74,10 @@ if __name__ == "__main__":
                 break
             url = word.get_next_word()
             sleep(abs(np.random.normal(0, wait_variance)))
-            wait_variance = max(wait_variance-0.005, 2)
+
+            time_hour = datetime.now().hour
+            wait_variance = max(wait_variance-0.005, max_wait_variance_by_hour[time_hour])
+
         except KeyboardInterrupt:
             logger.debug("KEYBOARD INTERRUPTION")
             db.delete("wort", {"id":db.get_max_id("wort")})
