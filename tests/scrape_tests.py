@@ -71,7 +71,7 @@ def test_hyphenation_edge():
     assert word_hausbibliothek.hyphenation == "Haus|bi|blio|thek"
 
 def test_alt_hyphenation():
-    assert word_hausbibliothek.alt_hyphenation == "Haus|bi|blio|thek" 
+    assert word_hausbibliothek.alt_hyphenation == "Haus|bi|blio|thek"
 
 url = "/rechtschreibung/Hauserin"
 word_hauserin = load_word(url)
@@ -119,3 +119,9 @@ word_hebewerk = load_word(url)
 
 def test_short_form_vs_short_form_of():
     assert word_hebewerk.short_form == None and word_hebewerk.short_form_of == "Schiffshebewerk"
+
+url = "/rechtschreibung/billig"
+word_billig = load_word(url)
+
+def test_antonym():
+    assert word_billig.antonyms == "teuer"
