@@ -79,12 +79,17 @@ def load_word(word_url, base_url="https://www.duden.de",
 
 def add_word_db(word_entry, db, url):
     synonyme = word_entry.pop("synonyme") or None
+    antonyme = word_entry.pop("antonyme") or None
     db.add("wort", word_entry)
     wort_id = db.select("id", "wort", {"url": "https://www.duden.de" + url}).fetchone()[0]
     
     if synonyme:
         for synonym in synonyme.split(";"):
             db.add("synonyme", {"synonyme": synonym, "wort_id": wort_id})
+
+    if antonyme:
+        for antonym in antonyme.split(";"):
+            db.add("antonyme", {"antonyme": antonym, "wort_id": wort_id})
 
     return wort_id
 
@@ -102,23 +107,42 @@ def add_meanings_db(meanings, db, wort_id):
             db.add("beispiele", {"beispiel": beispiel, "bedeutungen_id": bedeutung_id})
 
         for wendung in wendungen:
-            db.add("wendungen_redensarten_sprichwoerter", {"wendung_redensart_sprichwort": wendung, 
+            db.add("wendungen_redensarten_sprichwoerter", {"wendung_redensart_sprichwort": wendung,
             "bedeutungen_id": bedeutung_id})
         
         if gebrauch:
             for geb in gebrauch.split(";"):
                 db.add("gebrauch", {"gebrauch": geb, "bedeutungen_id": bedeutung_id})
 
+def add_link_entries_db(link_entries, db, wort_id):
+    synonyme_links = link_entries.pop("synonyme_links")
+    if synonyme_links:
+        for link in synonyme_links:
+            db.add("synonyme_links", {"synonym_url": "https://www.duden.de" + link, "wort_id": wort_id})
+
+    antonyme_links = link_entries.pop("antonyme_links")
+    if antonyme_links:
+        for link in antonyme_links:
+            db.add("antonyme_links", {"antonym_url": "https://www.duden.de" + link, "wort_id": wort_id})
+
+    typical_connections_links = link_entries.pop("typische_verbindungen_links")
+    if typical_connections_links:
+        for link in typical_connections_links:
+            db.add("typische_verbindungen_links", {"typische_verbindung_url": "https://www.duden.de" + link, "wort_id": wort_id})
+
 def create_tables(db):
     word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
                     "wortart": "TEXT", "haeufigkeit": "INTEGER",
                     "worttrennung": "TEXT", "alternative_worttrennung": "TEXT", "herkunft": "TEXT", "verwandte_form": "TEXT", 
                     "alternative_schreibweise": "TEXT", "zeichen": "TEXT", "kurzform": "TEXT",
-                    "kurzform_fuer": "TEXT", "typische_verbindungen": "TEXT", "fun_fact": "TEXT",
+                    "kurzform_fuer": "TEXT", "fun_fact": "TEXT",
                     "url": "TEXT"}
 
-    synonyme_dict = {"id": "INTEGER PRIMARY KEY", "synonyme": "TEXT", "wort_id": "INTEGER"}
-    synonyme_references = {"wort_id": "wort(id)"}
+    synonyms_dict = {"id": "INTEGER PRIMARY KEY", "synonyme": "TEXT", "wort_id": "INTEGER"}
+    synonyms_references = {"wort_id": "wort(id)"}
+
+    antonyms_dict = {"id": "INTEGER PRIMARY KEY", "antonyme": "TEXT", "wort_id": "INTEGER"}
+    antonyms_references = {"wort_id": "wort(id)"}
 
     meaning_dict = {"id": "INTEGER PRIMARY KEY", "bedeutung": "TEXT",
                     "grammatik": "TEXT", "wort_id": "INTEGER"}
@@ -133,14 +157,27 @@ def create_tables(db):
     usage_dict = {"id": "INTEGER PRIMARY KEY", "gebrauch": "TEXT", "bedeutungen_id": "INTEGER"}
     usage_references = {"bedeutungen_id": "bedeutungen(id)"}
 
+    synonyms_url_dict = {"id": "INTEGER PRIMARY KEY", "synonym_url": "TEXT", "wort_id": "INTEGER"}
+    synonyms_url_references = {"wort_id": "wort(id)"}
+
+    antonyms_url_dict = {"id": "INTEGER PRIMARY KEY", "antonym_url": "TEXT", "wort_id": "INTEGER"}
+    antonyms_url_references = {"wort_id": "wort(id)"}
+
+    typical_connections_url_dict = {"id": "INTEGER PRIMARY KEY", "typische_verbindung_url": "TEXT", "wort_id": "INTEGER"}
+    typical_connections_url_references = {"wort_id": "wort(id)"}
+ 
+
 
     db.create_table(table_name="wort", columns=word_dict)
-    db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references, cascade_delete=True)
+    db.create_table(table_name="synonyme", columns=synonyms_dict, references=synonyms_references, cascade_delete=True)
+    db.create_table(table_name="antonyme", columns=antonyms_dict, references=antonyms_references, cascade_delete=True)
     db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references, cascade_delete=True)
     db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references, cascade_delete=True)
     db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references, cascade_delete=True)
     db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references, cascade_delete=True)
-
+    db.create_table(table_name="synonyme_links", columns=synonyms_url_dict, references=synonyms_url_references, cascade_delete=True)
+    db.create_table(table_name="antonyme_links", columns=antonyms_url_dict, references=antonyms_url_references, cascade_delete=True)
+    db.create_table(table_name="typische_verbindungen_links", columns=typical_connections_url_dict, references=typical_connections_url_references, cascade_delete=True)
 
 class RangeDict(dict):
     def __getitem__(self, item):
