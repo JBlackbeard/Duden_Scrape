@@ -74,11 +74,24 @@ class Word():
             if not hyphenation:
                 dic = {}
                 dic["Von Duden empfohlene Trennung"] = self._get_tl_tuple(key="Von Duden empfohlene Trennung")
-                dic["Alle Trennmöglichkeiten"] = self._get_tl_tuple(key="Alle Trennmöglichkeiten")
-                return dic["Von Duden empfohlene Trennung"] # just keep this one
+                return dic["Von Duden empfohlene Trennung"]
             return hyphenation
         except AttributeError:
             return None
+
+    @property
+    def alt_hyphenation(self):
+        """Get alternative hyphenation of a word
+        """
+        try:
+            alt_hyphenation = self._get_tl_tuple(key="Worttrennung")
+            if not alt_hyphenation:
+                dic = {}
+                dic["Alle Trennmöglichkeiten"] = self._get_tl_tuple(key="Alle Trennmöglichkeiten")
+                return dic["Alle Trennmöglichkeiten"]
+            return alt_hyphenation
+        except AttributeError:
+            return None 
 
     @property
     def origin(self):
@@ -112,7 +125,7 @@ class Word():
             dic = {}
             dic["Von Duden empfohlene Schreibung"] = rec_spelling.strip()
             dic["Alternative Schreibung"] = alt_spelling.strip()
-            return dic["Von Duden empfohlene Schreibung"] # just return one value
+            return dic["Alternative Schreibung"] # just return one value
         return None
 
     @property
@@ -211,7 +224,6 @@ class Word():
 
         return meanings
 
-
     @property
     def synonyms(self):
         """Get the synonyms of the word
@@ -235,6 +247,15 @@ class Word():
             return related_words
         return None
 
+    @property
+    def fun_fact(self):
+        """trivia info about the word"""
+        element = self.soup.find("div", id = "wussten_sie_schon")
+        if element:
+            fun_facts = [li.text for li in element.find_all("li")]
+            fun_facts = "; ".join(fun_fact for fun_fact in fun_facts)
+            return fun_facts
+        return None
 
     def _get_meaning_additions(self, dic, soup):
         """Add additional informations to the meaning
@@ -246,7 +267,6 @@ class Word():
 
         return dic
         
-
     def get_next_word(self):
         next_words = self.soup.find("h3", class_="hookup__title", string="Im Alphabet danach").next_sibling
         word_link = next_words.find("a")
@@ -265,6 +285,7 @@ class Word():
         #dic_entry["Bedeutungen"] = self.meaning
         dic_entry["haeufigkeit"] = self.frequency
         dic_entry["worttrennung"] = self.hyphenation
+        dic_entry["alternative_worttrennung"] = self.alt_hyphenation
         dic_entry["herkunft"] = self.origin
         dic_entry["verwandte_form"] = self.related_form
         dic_entry["alternative_schreibweise"] = self.alternative_spelling
@@ -273,6 +294,7 @@ class Word():
         dic_entry["kurzform_fuer"] = self.short_form_of
         dic_entry["synonyme"] = self.synonyms
         dic_entry["typische_verbindungen"] = self.typical_connections
+        dic_entry["fun_fact"] = self.fun_fact
         dic_entry["url"] = self.url
 
         return dic_entry
