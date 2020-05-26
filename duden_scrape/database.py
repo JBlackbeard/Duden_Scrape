@@ -50,6 +50,7 @@ class DatabaseManager():
     def drop_table(self, table_name):
         try:
             self._execute(f"DROP TABLE {table_name};")
+            print(f"Table {table_name} dropped") 
         except sqlite3.OperationalError:
             print(f"Table {table_name} does not exist and could not be dropped")
 
