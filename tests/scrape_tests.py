@@ -32,6 +32,9 @@ def test_meaning_haus():
 def test_meaning_haus2():
     assert word_haus.meaning[5]["Bedeutung"] == "Familie"
 
+def test_fun_fact():
+    assert word_haus.fun_fact == "Dieses Wort gehört zum Wortschatz des Goethe-Zertifikats B1."
+
 url = "/rechtschreibung/Heber"
 word_heber = load_word(url)
 
@@ -65,8 +68,10 @@ word_hausbibliothek = load_word(url)
 sleep(0.5)
 
 def test_hyphenation_edge():
-    assert word_hausbibliothek.hyphenation == {'Alle Trennmöglichkeiten': 'Haus|bi|blio|thek', 
-    'Von Duden empfohlene Trennung': 'Haus|bi|blio|thek'}
+    assert word_hausbibliothek.hyphenation == "Haus|bi|blio|thek"
+
+def test_alt_hyphenation():
+    assert word_hausbibliothek.alt_hyphenation == "Haus|bi|blio|thek" 
 
 url = "/rechtschreibung/Hauserin"
 word_hauserin = load_word(url)
@@ -79,8 +84,7 @@ url = "/rechtschreibung/Haussa_Sprache_Afrika"
 word_hussa = load_word(url)
 
 def test_alternative_spelling():
-    assert word_hussa.alternative_spelling == {"Alternative Schreibung": "Hausa", 
-    "Von Duden empfohlene Schreibung": "Haussa"}
+    assert word_hussa.alternative_spelling == "Hausa"
 
 url = "/rechtschreibung/H_Dur"
 word_hdur = load_word(url)
