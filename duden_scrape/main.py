@@ -1,4 +1,6 @@
+import sys
 import logging
+import atexit
 import json
 from time import sleep
 import numpy as np
@@ -9,6 +11,7 @@ from duden_scrape.utils import RangeDict, add_link_entries_db, add_meanings_db, 
 import requests
 import OpenSSL
 from urllib3.exceptions import ReadTimeoutError
+import sqlite3
 
 
 logger = logging.getLogger(__name__) # create a specific logger, so we don't use a root logger
@@ -28,7 +31,10 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-
+def exit_handler(db, url):
+    max_id = db.get_max_id("wort")
+    db.delete("wort", {"id":max_id})
+    logger.info(f"Deleted word {url} with id {max_id}")
 
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 db = DatabaseManager("Duden")
@@ -61,6 +67,7 @@ if __name__ == "__main__":
                 # if there was an unhandled excpetion delete the last scraped word
                 # to make sure the word information wasn't just partially scraped
                 # and start scraping that word again
+                sleep(3)
                 db.delete("wort", {"id":db.get_max_id("wort")})
                 max_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
                 word = load_word(max_url)
@@ -75,7 +82,10 @@ if __name__ == "__main__":
             add_meanings_db(meanings, db, wort_id)
 
             link_entries = word.return_links()
-            add_link_entries_db(link_entries, db, wort_id)
+            add_link_entries_db(link_entries["synonyme_links"], db, wort_id, "synonyme_links", "synonym_url")
+            add_link_entries_db(link_entries.pop("antonyme_links"), db, wort_id, "antonyme_links", "antonym_url")
+            add_link_entries_db(link_entries.pop("typische_verbindungen_links"), db, wort_id,
+             "typische_verbindungen_links", "typische_verbindung_url")
 
             logger.info(f"{url}, wait_variance: {round(wait_variance,3)}, wort_id: {wort_id}")
 
@@ -87,32 +97,32 @@ if __name__ == "__main__":
             time_hour = datetime.now().hour
             wait_variance = max(wait_variance-0.005, min_wait_variance_by_hour[time_hour])
 
+            
         except KeyboardInterrupt:
             logger.debug("KEYBOARD INTERRUPTION")
             max_id = db.get_max_id("wort")
-            db.delete("wort", {"id":max_id})
-            break
-        except requests.exceptions.Timeout:
+            max_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
+            db.delete("wort", {"id": max_id})
+            logger.warning(f"{max_url} with id {max_id} was deleted")
+            sys.exit(1)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectTimeout, ReadTimeoutError):
             logger.error(f"The requests for {url} timed out with wait_variance {round(wait_variance,3)} ", exc_info=True)
             wait_variance += 5
             sleep(300)
-        except OSError:
-            logger.error(f"The request for {url} with {round(wait_variance,3)} failed", exc_info=True)
+        except OSError as e:
+            logger.error(f"The request for {url} with {round(wait_variance,3)} failed with an OSError: \n {e}", exc_info=True)
             wait_variance += 5
             sleep(300)
-        except requests.exceptions.ConnectTimeout:
-            logger.error(f"The request for {url} timed out with wait_variance {round(wait_variance,3)}", exc_info=True)
-            wait_variance += 5
-            sleep(300)
-        except ReadTimeoutError:
-            logger.error(f"The request for {url} timed out with wait_variance {round(wait_variance,3)}", exc_info=True)
-            wait_variance += 5
-            sleep(300)
+        except sqlite3.OperationalError as e:
+            logger.error(f"There was an error with sqlite3: \n {e}")
+            recover = True
         except:
             logger.error(f"There was an error with {url} \n and word_entry {word_entry} \n with wait_variance {round(wait_variance,3)} ", exc_info=True)
+            max_id = db.get_max_id("wort")
             recover = True
             wait_variance += 5
-            sleep(300)
+    
+
 
 
 
