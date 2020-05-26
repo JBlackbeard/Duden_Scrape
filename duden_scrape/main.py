@@ -32,7 +32,7 @@ logger.addHandler(ch)
 
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 db = DatabaseManager("Duden")
-db.drop_table("wort")
+# db.drop_table("wort")
 # db.drop_table("bedeutungen")
 # db.drop_table("synonyme")
 # db.drop_table("gebrauch")
@@ -47,17 +47,20 @@ url = first_word
 recover = False
 wait_variance = 5
 
-max_wait_variance_by_hour = RangeDict({range(0, 9): 1.5, range(9, 21): 3.5, range(21, 24): 2.5})
+min_wait_variance_by_hour = RangeDict({range(0, 9): 1.5, range(9, 21): 3.5, range(21, 24): 2.5})
 
 if __name__ == "__main__":
     if not db.is_empty("wort"):
-        url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
-        word = load_word(url)
-        first_word = word.get_next_word()
+        old_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
+        word = load_word(old_url)
+        url = word.get_next_word()
 
     while True:
         try:
             if recover and not db.is_empty("wort"):
+                # if there was an unhandled excpetion delete the last scraped word
+                # to make sure the word information wasn't just partially scraped
+                # and start scraping that word again
                 db.delete("wort", {"id":db.get_max_id("wort")})
                 max_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
                 word = load_word(max_url)
@@ -82,11 +85,12 @@ if __name__ == "__main__":
             sleep(abs(np.random.normal(0, wait_variance)))
 
             time_hour = datetime.now().hour
-            wait_variance = max(wait_variance-0.005, max_wait_variance_by_hour[time_hour])
+            wait_variance = max(wait_variance-0.005, min_wait_variance_by_hour[time_hour])
 
         except KeyboardInterrupt:
             logger.debug("KEYBOARD INTERRUPTION")
-            db.delete("wort", {"id":db.get_max_id("wort")})
+            max_id = db.get_max_id("wort")
+            db.delete("wort", {"id":max_id})
             break
         except requests.exceptions.Timeout:
             logger.error(f"The requests for {url} timed out with wait_variance {round(wait_variance,3)} ", exc_info=True)
@@ -117,4 +121,4 @@ if __name__ == "__main__":
 
 #@TODO: clean up __main__
 #@TODO: create new ER_diagram with fun_facts and alt_hyphenation
-#@TODO: create table for typische_verbindungen after scraping all data
+#@TODO: create link tables with added words (not just the links) -> join to wort table
