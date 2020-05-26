@@ -169,6 +169,21 @@ def create_tables(db):
     db.create_table(table_name="antonyme_links", columns=antonyms_url_dict, references=antonyms_url_references, cascade_delete=True)
     db.create_table(table_name="typische_verbindungen_links", columns=typical_connections_url_dict, references=typical_connections_url_references, cascade_delete=True)
 
+def add_full_word_db(word, url, db):
+    word_entry = word.return_word_entry()
+    wort_id = add_word_db(word_entry, db, url)
+
+    meanings = word.return_meaning()
+    add_meanings_db(meanings, db, wort_id)
+
+    link_entries = word.return_links()
+    add_link_entries_db(link_entries["synonyme_links"], db, wort_id, "synonyme_links", "synonym_url")
+    add_link_entries_db(link_entries.pop("antonyme_links"), db, wort_id, "antonyme_links", "antonym_url")
+    add_link_entries_db(link_entries.pop("typische_verbindungen_links"), db, wort_id,
+    "typische_verbindungen_links", "typische_verbindung_url")
+
+    return wort_id, word_entry
+
 class RangeDict(dict):
     def __getitem__(self, item):
         if not isinstance(item, range):

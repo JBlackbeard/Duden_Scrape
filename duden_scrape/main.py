@@ -1,40 +1,30 @@
 import sys
 import logging
-import atexit
-import json
 from time import sleep
 import numpy as np
 from datetime import datetime
 from .utils import load_word
 from duden_scrape.database import DatabaseManager
-from duden_scrape.utils import RangeDict, add_link_entries_db, add_meanings_db, add_word_db, create_tables
+from duden_scrape.utils import RangeDict, add_full_word_db, add_link_entries_db, add_meanings_db, add_word_db, create_tables
 import requests
 import OpenSSL
 from urllib3.exceptions import ReadTimeoutError
 import sqlite3
 
-
-logger = logging.getLogger(__name__) # create a specific logger, so we don't use a root logger
+# logger properties
+logger = logging.getLogger(__name__) 
 logger.setLevel(logging.DEBUG)
 
-# create file handler which logs even debug messages
 fh = logging.FileHandler('duden_scrape.log')
 fh.setLevel(logging.DEBUG)
-# create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
-# create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
-# add the handlers to the logger
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-def exit_handler(db, url):
-    max_id = db.get_max_id("wort")
-    db.delete("wort", {"id":max_id})
-    logger.info(f"Deleted word {url} with id {max_id}")
 
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 db = DatabaseManager("Duden")
@@ -75,22 +65,13 @@ if __name__ == "__main__":
                 recover = False
 
             word = load_word(url)
-            word_entry = word.return_word_entry()
-            wort_id = add_word_db(word_entry, db, url)
-
-            meanings = word.return_meaning()
-            add_meanings_db(meanings, db, wort_id)
-
-            link_entries = word.return_links()
-            add_link_entries_db(link_entries["synonyme_links"], db, wort_id, "synonyme_links", "synonym_url")
-            add_link_entries_db(link_entries.pop("antonyme_links"), db, wort_id, "antonyme_links", "antonym_url")
-            add_link_entries_db(link_entries.pop("typische_verbindungen_links"), db, wort_id,
-             "typische_verbindungen_links", "typische_verbindung_url")
+            wort_id, word_entry = add_full_word_db(word, url, db)
 
             logger.info(f"{url}, wait_variance: {round(wait_variance,3)}, wort_id: {wort_id}")
 
             if url == LAST_WORD:
-                break
+                logger.info("The last word was scraped and the program quit")
+                sys.exit(1)
             url = word.get_next_word()
             sleep(abs(np.random.normal(0, wait_variance)))
 
@@ -122,12 +103,6 @@ if __name__ == "__main__":
             recover = True
             wait_variance += 5
     
-
-
-
-
-
-
 
 #@TODO: clean up __main__
 #@TODO: create new ER_diagram with fun_facts and alt_hyphenation
