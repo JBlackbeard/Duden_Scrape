@@ -235,6 +235,38 @@ class Word():
         return synonyme
 
     @property
+    def antonyms(self):
+        """Get the antonyms of the word
+        """
+        antonyme = self.soup.find("div", id="antonyme")
+        if antonyme:
+            antonyme = [antonym.text.strip() for antonym in antonyme.find_all("li")]
+            antonyme = "; ".join(antonym for antonym in antonyme)
+        return antonyme
+
+    @property
+    def synonym_links(self):
+        """Get the duden links for the linked synonyms
+        """
+        synonyme = self.soup.find("div", id="synonyme")
+        if synonyme:
+            synonym_urls = synonyme.find("ul").find_all("a")
+            synonym_urls = [synonym_url.get("href") for synonym_url in synonym_urls]
+            return synonym_urls
+        return None
+
+    @property
+    def antonym_links(self):
+        """Get the duden links for the linked antonyms
+        """
+        antonyme = self.soup.find("div", id="antonyme")
+        if antonyme:
+            antonym_urls = antonyme.find("ul").find_all("a")
+            antonym_urls = [antonym_url.get("href") for antonym_url in antonym_urls]
+            return antonym_urls
+        return None
+
+    @property
     def typical_connections(self):
         """Get words that often appear together with this word
         """
@@ -248,9 +280,21 @@ class Word():
         return None
 
     @property
+    def typical_connections_links(self):
+        """Get words (links) that often appear together with this word
+        """
+        element = self.soup.find("figure", class_="tag-cluster__cluster")
+        if element:
+            link_elements = element.find_all("a")
+            if link_elements:
+                related_word_urls = [rel_word.get("href") for rel_word in link_elements]
+            return related_word_urls
+        return None
+
+    @property
     def fun_fact(self):
         """trivia info about the word"""
-        element = self.soup.find("div", id = "wussten_sie_schon")
+        element = self.soup.find("div", id="wussten_sie_schon")
         if element:
             fun_facts = [li.text for li in element.find_all("li")]
             fun_facts = "; ".join(fun_fact for fun_fact in fun_facts)
@@ -293,7 +337,8 @@ class Word():
         dic_entry["kurzform"] = self.short_form
         dic_entry["kurzform_fuer"] = self.short_form_of
         dic_entry["synonyme"] = self.synonyms
-        dic_entry["typische_verbindungen"] = self.typical_connections
+        dic_entry["antonyme"] = self.antonyms
+        #dic_entry["typische_verbindungen"] = self.typical_connections
         dic_entry["fun_fact"] = self.fun_fact
         dic_entry["url"] = self.url
 
@@ -305,5 +350,13 @@ class Word():
 
         return dic_entry
 
+    def return_links(self):
+        """
+        """
+        dic_entry = {}
+        dic_entry["synonyme_links"] = self.synonym_links
+        dic_entry["antonyme_links"] = self.antonym_links
+        dic_entry["typische_verbindungen_links"] = self.typical_connections_links
 
+        return dic_entry
 
