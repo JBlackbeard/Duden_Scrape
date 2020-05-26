@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 from .utils import load_word
 from duden_scrape.database import DatabaseManager
-from duden_scrape.utils import RangeDict, add_meanings_db, add_word_db, create_tables
+from duden_scrape.utils import RangeDict, add_link_entries_db, add_meanings_db, add_word_db, create_tables
 import requests
 import OpenSSL
 from urllib3.exceptions import ReadTimeoutError
@@ -32,12 +32,15 @@ logger.addHandler(ch)
 
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 db = DatabaseManager("Duden")
-# db.drop_table("wort")
+db.drop_table("wort")
 # db.drop_table("bedeutungen")
 # db.drop_table("synonyme")
 # db.drop_table("gebrauch")
 # db.drop_table("beispiele")
 # db.drop_table("wendungen_redensarten_sprichwoerter")
+# db.drop_table("synonyme_links")
+# db.drop_table("antonyme_links")
+# db.drop_table("typische_verbindungen_links")
 create_tables(db)
 first_word = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
 url = first_word
@@ -60,6 +63,7 @@ if __name__ == "__main__":
                 word = load_word(max_url)
                 url = word.get_next_word()
                 recover = False
+
             word = load_word(url)
             word_entry = word.return_word_entry()
             wort_id = add_word_db(word_entry, db, url)
@@ -67,6 +71,8 @@ if __name__ == "__main__":
             meanings = word.return_meaning()
             add_meanings_db(meanings, db, wort_id)
 
+            link_entries = word.return_links()
+            add_link_entries_db(link_entries, db, wort_id)
 
             logger.info(f"{url}, wait_variance: {round(wait_variance,3)}, wort_id: {wort_id}")
 
@@ -110,4 +116,5 @@ if __name__ == "__main__":
 
 
 #@TODO: clean up __main__
+#@TODO: create new ER_diagram with fun_facts and alt_hyphenation
 #@TODO: create table for typische_verbindungen after scraping all data
