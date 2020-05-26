@@ -108,3 +108,46 @@ def add_meanings_db(meanings, db, wort_id):
         if gebrauch:
             for geb in gebrauch.split(";"):
                 db.add("gebrauch", {"gebrauch": geb, "bedeutungen_id": bedeutung_id})
+
+def create_tables(db):
+    word_dict = {"id": "INTEGER PRIMARY KEY", "name": "TEXT", "ganzes_wort": "TEXT", "artikel": "TEXT",
+                    "wortart": "TEXT", "haeufigkeit": "INTEGER",
+                    "worttrennung": "TEXT", "alternative_worttrennung": "TEXT", "herkunft": "TEXT", "verwandte_form": "TEXT", 
+                    "alternative_schreibweise": "TEXT", "zeichen": "TEXT", "kurzform": "TEXT",
+                    "kurzform_fuer": "TEXT", "typische_verbindungen": "TEXT", "fun_fact": "TEXT",
+                    "url": "TEXT"}
+
+    synonyme_dict = {"id": "INTEGER PRIMARY KEY", "synonyme": "TEXT", "wort_id": "INTEGER"}
+    synonyme_references = {"wort_id": "wort(id)"}
+
+    meaning_dict = {"id": "INTEGER PRIMARY KEY", "bedeutung": "TEXT",
+                    "grammatik": "TEXT", "wort_id": "INTEGER"}
+    meaning_references = {"wort_id": "wort(id)"}
+
+    examples_dict = {"id": "INTEGER PRIMARY KEY", "beispiel": "TEXT", "bedeutungen_id": "INTEGER"}
+    examples_references = {"bedeutungen_id": "bedeutungen(id)"}
+
+    sayings_dict = {"id": "INTEGER PRIMARY KEY", "wendung_redensart_sprichwort": "TEXT", "bedeutungen_id": "INTEGER"}
+    sayings_references = {"bedeutungen_id": "bedeutungen(id)"}
+
+    usage_dict = {"id": "INTEGER PRIMARY KEY", "gebrauch": "TEXT", "bedeutungen_id": "INTEGER"}
+    usage_references = {"bedeutungen_id": "bedeutungen(id)"}
+
+
+    db.create_table(table_name="wort", columns=word_dict)
+    db.create_table(table_name="synonyme", columns=synonyme_dict, references=synonyme_references, cascade_delete=True)
+    db.create_table(table_name="bedeutungen", columns=meaning_dict, references=meaning_references, cascade_delete=True)
+    db.create_table(table_name="beispiele", columns=examples_dict, references=examples_references, cascade_delete=True)
+    db.create_table(table_name="wendungen_redensarten_sprichwoerter", columns=sayings_dict, references=sayings_references, cascade_delete=True)
+    db.create_table(table_name="gebrauch", columns=usage_dict, references=usage_references, cascade_delete=True)
+
+
+class RangeDict(dict):
+    def __getitem__(self, item):
+        if not isinstance(item, range):
+            for key in self:
+                if item in key:
+                    return self[key]
+            raise KeyError(item)
+        else:
+            return super().__getitem__(item)
