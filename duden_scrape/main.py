@@ -43,7 +43,7 @@ url = first_word
 recover = False
 wait_variance = 5
 
-min_wait_variance_by_hour = RangeDict({range(0, 9): 1.5, range(9, 21): 3.5, range(21, 24): 2.5})
+min_wait_variance_by_hour = RangeDict({range(0, 8): 1.5, range(8, 21): 5, range(21, 24): 2.5})
 
 if __name__ == "__main__":
     if not db.is_empty("wort"):
@@ -76,7 +76,7 @@ if __name__ == "__main__":
             sleep(abs(np.random.normal(0, wait_variance)))
 
             time_hour = datetime.now().hour
-            wait_variance = max(wait_variance-0.005, min_wait_variance_by_hour[time_hour])
+            wait_variance = max(wait_variance-0.01, min_wait_variance_by_hour[time_hour])
 
             
         except KeyboardInterrupt:
@@ -86,22 +86,21 @@ if __name__ == "__main__":
             db.delete("wort", {"id": max_id})
             logger.warning(f"{max_url} with id {max_id} was deleted")
             sys.exit(1)
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectTimeout, ReadTimeoutError):
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectTimeout, ReadTimeoutError,requests.exceptions.ConnectionError):
             logger.error(f"The requests for {url} timed out with wait_variance {round(wait_variance,3)} ", exc_info=True)
-            wait_variance += 5
+            wait_variance += 7
             sleep(300)
         except OSError as e:
             logger.error(f"The request for {url} with {round(wait_variance,3)} failed with an OSError: \n {e}", exc_info=True)
-            wait_variance += 5
+            wait_variance += 7
             sleep(300)
         except sqlite3.OperationalError as e:
             logger.error(f"There was an error with sqlite3: \n {e}")
             recover = True
         except:
             logger.error(f"There was an error with {url} \n and word_entry {word_entry} \n with wait_variance {round(wait_variance,3)} ", exc_info=True)
-            max_id = db.get_max_id("wort")
             recover = True
-            wait_variance += 5
+            wait_variance += 7
     
 
 #@TODO: clean up __main__
