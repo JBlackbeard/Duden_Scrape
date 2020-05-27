@@ -8,6 +8,7 @@ from .models import Word
 
 logger = logging.getLogger(__name__)
 
+
 HEADERS = [{"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4), "\
             + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Chrome/71.0.3578.98"},
             {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64), "\
@@ -42,9 +43,11 @@ adapter = TimeoutHTTPAdapter(timeout=2.5)
 
 
 retries = Retry(
-    total=2,
+    total=5,
     status_forcelist=[429, 500, 502, 503, 504],
-    backoff_factor=1
+    # backoff_factor: how long does the process sleep between requests:
+    # {backoff factor} * (2 ** ({number of total retries} - 1))
+    backoff_factor=30 # 15, 30, 60, 120, 240
 )
 
 http = requests.Session()
