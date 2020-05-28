@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 # if there was an unhandled excpetion delete the last scraped word
                 # to make sure the word information wasn't just partially scraped
                 # and start scraping that word again
-                sleep(3)
+                sleep(wait_variance)
                 db.delete("wort", {"id":db.get_max_id("wort")})
                 max_url = db.select("url", "wort", order_by="id desc", limit="1").fetchone()[0].replace("https://www.duden.de", "")
                 word = load_word(max_url)
