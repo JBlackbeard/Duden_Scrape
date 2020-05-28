@@ -175,10 +175,13 @@ class Word():
         note_title = element.find("dt", class_="note__title", string=re.compile(key))
         res_list = []
         if note_title:
-            note_list = note_title.next_sibling.find_all("li")
-            
-            for li in note_list:
-                res_list.append(li.text.strip())
+            if note_title.next_sibling == ' ':
+                note_title = note_title.next_sibling
+            if note_title and note_title is not ' ':
+                note_list = note_title.next_sibling.find_all("li")
+                
+                for li in note_list:
+                    res_list.append(li.text.strip())
         return res_list or None
         #return "; ".join(res for res in res_list) or None
 
