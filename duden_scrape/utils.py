@@ -187,6 +187,10 @@ def add_full_word_db(word, url, db):
 
     return wort_id, word_entry
 
+def increase_variance(variance):
+    variance = (variance+1)*2
+    return variance
+
 class RangeDict(dict):
     def __getitem__(self, item):
         if not isinstance(item, range):
