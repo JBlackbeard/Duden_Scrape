@@ -30,15 +30,7 @@ logger.addHandler(ch)
 LAST_WORD = "/rechtschreibung/24_Stunden_Rennen"
 word_entry = None
 db = DatabaseManager("Duden")
-# db.drop_table("wort")
-# db.drop_table("bedeutungen")
-# db.drop_table("synonyme")
-# db.drop_table("gebrauch")
-# db.drop_table("beispiele")
-# db.drop_table("wendungen_redensarten_sprichwoerter")
-# db.drop_table("synonyme_links")
-# db.drop_table("antonyme_links")
-# db.drop_table("typische_verbindungen_links")
+
 create_tables(db)
 first_word = "/rechtschreibung/d_Korrekturzeichen_fuer_tilgen"
 url = first_word
@@ -57,8 +49,6 @@ if __name__ == "__main__":
             0].replace("https://www.duden.de", "")
         word = load_word(old_url)
         url = word.get_next_word()
-    #url = "rechtschreibung/Saufgelage"
-    #url = "rechtschreibung/Saeufernase"
 
     while True:
         try:
@@ -121,6 +111,5 @@ if __name__ == "__main__":
             wait_variance = increase_variance(wait_variance)
 
 
-# @TODO: clean up __main__
 # @TODO: create new ER_diagram with fun_facts and alt_hyphenation
 # @TODO: create link tables with added words (not just the links) -> join to wort table
